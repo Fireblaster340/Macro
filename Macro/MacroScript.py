@@ -225,7 +225,7 @@ def RemoveBreak(String):
 def ConvertSize(size:int):
     if size == 0:
         return "0B"
-    convbyte = ["B","KB","MB","GB","TB","PB","XB","ZB","YB"]
+    convbyte = ["B","KB","MB","GB","TB","PB","XB","ZB","YB","BB","GPB","HB"]
     for i in range(len(convbyte)):
         if 1024**int(i) > int(size):
             size = size/(1024**(i-1))
