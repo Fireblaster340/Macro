@@ -238,8 +238,9 @@ def ToggleStart():
     global startpause
     startpause = not startpause
 def ReplayFiles():
-    global drop, var, Running, paused, Looping
+    global drop, var, Running, paused, Looping, speed
     ClearAll()
+    
     info = tk.Label(root, text="Select a file name from the drop down menu to run")
     info.pack()
     var = tk.StringVar(root)
@@ -251,10 +252,15 @@ def ReplayFiles():
         contents = ["No saves... yet..."]
     drop = tk.OptionMenu(root,var,*contents)
     drop.pack(pady=5)
+    spinfo = tk.Label(root,text="Replay Speed (percent of original)")
+    spinfo.pack(pady=5)
+    speed = tk.Scale(root,from_=20,to=500,orient="horizontal")
+    speed.set(100)
+    speed.pack(pady=5)
     select = tk.Button(root,text="Run File",command=RunMacro)
     select.pack(pady=5)
+    root.update()
     CreateHome()
-
 def ParseLine(line:str):
     line = line.split()
     position = tuple(map(float, line[:2]))
@@ -271,7 +277,7 @@ def ParseLine(line:str):
     return (position, scrolldelta, mouseinputs, keyinputs)
  
 def RunMacro():
-    global var, Looping, Running, PauseLoop
+    global var, Looping, Running, PauseLoop, speed
     frames = []
     Running = True
     PauseLoop = False
@@ -285,9 +291,11 @@ def RunMacro():
         return None
     for item in map(RemoveBreak,file.readlines()):
         frames.append(item)
-    wait = frames.pop(0)
+    wait = float(frames.pop(0))
+    wait /= speed.get()
+    wait *= 100
     Execute(frames,wait)
-    while Looping:
+    while Looping: 
         Execute(frames,wait)
 def Execute(frames, wait):
     global PauseLoop, Looping, Running
