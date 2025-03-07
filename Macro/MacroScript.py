@@ -19,7 +19,7 @@ root.resizable(False,False)
 pause = "']'"
 end = "'['"
 lastmacro, allkeys, allMouseClicks = [],[],[]
-mouseDx, mouseDx = 0,0
+mouseDx, mouseDy = 0,0
 SampleRate = 0.01
 paused, Looping, startpause, PauseLoop, islistening, showmsg = False,False,False,False,False,False
 Running = True
