@@ -11,7 +11,6 @@ from pynput.mouse import Listener as MList, Button, Controller as MCont
 import threading 
 import time
 
-
 root = tk.Tk()
 root.title("Macro")
 root.geometry("400x400")
@@ -21,7 +20,7 @@ end = "'['"
 lastmacro, allkeys, allMouseClicks = [],[],[]
 mouseDx, mouseDy = 0,0
 SampleRate = 0.01
-paused, Looping, startpause, PauseLoop, islistening, showmsg = False,False,False,False,False,False
+paused, Looping, startpause, PauseLoop, islistening, showmsg, mrun = False,False,False,False,False,False,False
 Running = True
 def ListenLoop():
     global islistening, lastmacro, SampleRate, startpause, concat
@@ -74,8 +73,16 @@ def ListenLoop():
             showerror("Failed","Unexpected error occured during saving, path info: "+path)
 def KeyThread():
     global islistening
-    with KList(on_press=UpdPress, on_release=UpdRel) as listener:
-        listener.join()
+    try:
+        print("Key Starting...")
+        with KList(on_press=UpdPress, on_release=UpdRel) as listener:
+            print("Key Successfully Running")
+            listener.join()
+    except Exception:
+        root.destroy()
+        print("Listeners Failed, restarting... attempting recursive call")
+        StartProgram()
+        return 0
 
 def UpdPress(Key):
     global paused, islistening, PauseLoop, Looping, Running, concat, begin
@@ -107,9 +114,18 @@ def UpdRel(Key):
         allkeys.remove(Key)
 
 def MouseThread():
-    global islistening
-    with MList(on_click=UpdClick, on_scroll=UpdScroll) as listenerm:
-        listenerm.join()
+    global islistening, mrun
+    try:
+        print("Mouse Starting...")
+        with MList(on_click=UpdClick, on_scroll=UpdScroll) as listenerm:
+            print("Mouse Running Successfully")
+            mrun = True
+            listenerm.join()
+    except Exception:
+        root.destroy()
+        print("Listeners Failed, restarting... attempting recursive call")
+        StartProgram()
+        return 0
 
 def UpdClick(x,y,Button,Pressed):
     global allMouseClicks
@@ -254,7 +270,7 @@ def ReplayFiles():
     drop.pack(pady=5)
     spinfo = tk.Label(root,text="Replay Speed (percent of original)")
     spinfo.pack(pady=5)
-    speed = tk.Scale(root,from_=20,to=500,orient="horizontal")
+    speed = tk.Scale(root,from_=20,to=1000,orient="horizontal")
     speed.set(100)
     speed.pack(pady=5)
     select = tk.Button(root,text="Run File",command=RunMacro)
@@ -384,13 +400,18 @@ def ToggleListen():
         begin.config(text="Start listening")
         islistening = False
 
-Home()
-print("Starting threads")
-KT = threading.Thread(target=KeyThread,args=())
-KT.start()
-time.sleep(0.01)
-MT = threading.Thread(target=MouseThread,args=())
-MT.start()
-os.system('clear')
-root.mainloop()
+def StartProgram():
+    global KT, MT
+    Home()
+    print("Starting threads")
+    MT = threading.Thread(target=MouseThread,args=())
+    MT.start()
+    while not mrun:
+        pass
+    KT = threading.Thread(target=KeyThread,args=())
+    KT.start()
+    os.system('clear')
+    root.mainloop()
+
+StartProgram()   
 quit(0)
