@@ -297,6 +297,9 @@ def ReplayFiles():
     CreateHome()
 
 def Delete(path:str):
+    if path == "No saves... yet..." or path == "Select File":
+        showerror("No Selection","You have not selected any path for deletion")
+        return 0
     path = path.split()[0]
     os.remove(path)
     file = open("/Users/reyhaan/Desktop/Macro/PathNames","r")
