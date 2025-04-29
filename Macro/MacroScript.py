@@ -268,10 +268,10 @@ def ReplayFiles():
             try:
                 file = open(item,"r")
             except FileNotFoundError:
-                #file = open("/Users/?/Desktop/Macro/PathNames","r")
+                file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
                 filepaths = list(map(RemoveBreak,file.readlines()))
                 file.close()
-                #file = open("/Users/?/Desktop/Macro/PathNames","w")
+                file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
                 file.write("")
                 for i in filepaths:
                     if item != i:
@@ -302,10 +302,10 @@ def Delete(path:str):
         return 0
     path = path.split()[0]
     os.remove(path)
-    #file = open("/Users/?/Desktop/Macro/PathNames","r")
+    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
     files = list(map(RemoveBreak,file.readlines()))
     file.close()
-    #file = open("/Users/?/Desktop/Macro/PathNames","w")
+    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
     file.write("")
     for i in files:
         if path != i:
