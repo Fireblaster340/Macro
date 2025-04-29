@@ -28,8 +28,6 @@ def ListenLoop():
     concat = ""
     if startpause:
         concat = "P"
-    while concat == "P":
-        pass
     while islistening:
         concat = ""
         pos = str(MCont().position[0])+" "+str(MCont().position[1])
@@ -162,7 +160,7 @@ def Home():
     replayfiles.pack(padx=0,pady=5)
     settings = tk.Button(root,text="Settings",command=Settings)
     settings.pack(padx=0,pady=20)
-    extra = tk.Button(root,text="Note",command=lambda:showinfo("Extra information","Some limitations of this macro: very rapid inputs are not captured if you keep the sample rate low. Certain keys, such as the side mouse buttons may not work. Holding keys down does not work in text editors. Also some gestures such as swiping across desktops wont work."))
+    extra = tk.Button(root,text="Note",command=lambda:showinfo("Extra information","Some limitations of this macro: very rapid inputs are not captured if you keep the sample rate low. Certain keys, such as the side mouse buttons may not work. After some testing, I believe that toggling caps lock during any point of running the macro will shut it down with an illegal instruction error. Holding keys down does not work in text editors. Also some gestures such as swiping across desktops wont work."))
     extra.pack(pady=20)
 
 def Settings():
@@ -255,15 +253,33 @@ def ToggleStart():
     startpause = not startpause
 def ReplayFiles():
     global drop, var, Running, paused, Looping, speed
-    ClearAll()
-    
+    ClearAll()  
     info = tk.Label(root, text="Select a file name from the drop down menu to run")
     info.pack()
     var = tk.StringVar(root)
     var.set("Select File")
     file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
     contents = list(map(RemoveBreak, file.readlines()))
-    contents = list(map(AddSize, contents))
+    try:
+        contents = list(map(AddSize, contents))
+    except FileNotFoundError:
+        showerror("Error","PathNames file is inconsistent with files, fixing...")
+        for item in contents:
+            try:
+                file = open(item,"r")
+            except FileNotFoundError:
+                file = open("/Users/reyhaan/Desktop/Macro/PathNames","r")
+                filepaths = list(map(RemoveBreak,file.readlines()))
+                file.close()
+                file = open("/Users/reyhaan/Desktop/Macro/PathNames","w")
+                file.write("")
+                for i in filepaths:
+                    if item != i:
+                        file.writelines(i+"\n")
+            file.close()
+        showinfo("Fixed","Inconsistency was corrected. If the error persists, manually match the recording file names with the names in pathnames")
+        Home()
+        return 0
     if len(contents) == 0:
         contents = ["No saves... yet..."]
     drop = tk.OptionMenu(root,var,*contents)
@@ -275,8 +291,25 @@ def ReplayFiles():
     speed.pack(pady=5)
     select = tk.Button(root,text="Run File",command=RunMacro)
     select.pack(pady=5)
+    delete = tk.Button(root,text="Delete",command=lambda:Delete(var.get()))
+    delete.pack(pady=5)
     root.update()
     CreateHome()
+
+def Delete(path:str):
+    path = path.split()[0]
+    os.remove(path)
+    file = open("/Users/reyhaan/Desktop/Macro/PathNames","r")
+    files = list(map(RemoveBreak,file.readlines()))
+    file.close()
+    file = open("/Users/reyhaan/Desktop/Macro/PathNames","w")
+    file.write("")
+    for i in files:
+        if path != i:
+            file.writelines(i+"\n")
+    file.close()
+    Home()
+
 def ParseLine(line:str):
     line = line.split()
     position = tuple(map(float, line[:2]))
@@ -287,7 +320,7 @@ def ParseLine(line:str):
     for x in line[4:]:
         if x == "M":
             break
-        currpos+=1
+        currpos+=1 
         keyinputs.append(x)
     mouseinputs = line[currpos:]
     return (position, scrolldelta, mouseinputs, keyinputs)
@@ -303,7 +336,7 @@ def RunMacro():
             return None
         file = open(var.get().split(" ")[0],"r")
     except NotADirectoryError:
-        showerror("Error","Hello! This is a free open source macro! Its not amazing but it works! Attempted to open file that doesn't exist. Most likely cause is pathnames file is inconsistent, update it manually by adding the path of the missing file(s) and going to the next line. Sometimes, I don't know when, there will be an error caught during execution of a recording. If this happens, you can continue execution of the macro, however it will contain missing parts. You can toggle this message in settings, once you've chosen to proceed despite the error, the message will never appear.")
+        showerror("Error","Hello! This is a free open source macro! Its not amazing but it works! Attempted to open file that doesn't exist. Most likely cause is pathnames file is inconsistent, update it manually by adding the path of the missing file(s) and going to the next line. Soon, I will add automatic correction. Sometimes, I don't know when, there will be an error caught during execution of a recording. If this happens, you can continue execution of the macro, however it will contain missing parts. You can toggle this message in settings, once you've chosen to proceed despite the error, the message will never appear.")
         return None
     for item in map(RemoveBreak,file.readlines()):
         frames.append(item)
@@ -314,7 +347,7 @@ def RunMacro():
     while Looping: 
         Execute(frames,wait)
 def Execute(frames, wait):
-    global PauseLoop, Looping, Running
+    global PauseLoop, Looping, Running, showmsg
     mouse = MCont()
     keyboard = KCont()
     currkeys = []
@@ -395,7 +428,9 @@ def ToggleListen():
     if not islistening:
         begin.config(text="Stop listening")
         islistening = True
-        threading.Thread(target=ListenLoop,args=()).start()
+        time.sleep(0.1)
+        Loop = threading.Thread(target=ListenLoop,args=())
+        Loop.start()
     else:
         begin.config(text="Start listening")
         islistening = False
@@ -410,7 +445,6 @@ def StartProgram():
         pass
     KT = threading.Thread(target=KeyThread,args=())
     KT.start()
-    os.system('clear')
     root.mainloop()
 
 StartProgram()   
