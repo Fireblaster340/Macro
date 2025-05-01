@@ -35,6 +35,8 @@ def ListenLoop():
     global islistening, lastmacro, SampleRate, startpause, concat
     lastmacro = []
     concat = ""
+    root.withdraw()
+    root.update()
     if startpause:
         concat = "P"
     while concat == "P":
@@ -86,6 +88,7 @@ def ListenLoop():
             showinfo("Saved","Saved Successfully! Path: "+path)
         except OSError:
             showerror("Failed","Unexpected error occured during saving, path info: "+path)
+    root.wm_deiconify()
 def KeyThread():
     global islistening
     try:
@@ -318,11 +321,14 @@ def ReplayFiles():
     CreateHome()
 def Rename():
     global var
+    if var.get().split()[0] in ["No saves... yet...", "Select File"]:
+        showerror("No Selection","You have not selected any path for renaming")
+        return 0
     root.withdraw()
     name = simpledialog.askstring("Rename","What would you like to rename this file to?")
-    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",name)
     if name == None:
         return 0
+    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",name)
     os.rename(var.get().split()[0],newpath)
     file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
     allpaths = list(map(RemoveBreak,file.readlines()))
