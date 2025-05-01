@@ -22,6 +22,14 @@ mouseDx, mouseDy = 0,0
 SampleRate = 0.01
 paused, Looping, startpause, PauseLoop, islistening, showmsg, mrun = False,False,False,False,False,False,False
 Running = True
+
+def ReplaceFile(path):
+    try:
+        open(path,"r")
+    except FileNotFoundError:
+        showerror("File Missing","Critical file is missing, creating it")
+        open(path,"w")
+
 def ListenLoop():
     global islistening, lastmacro, SampleRate, startpause, concat
     lastmacro = []
@@ -44,6 +52,12 @@ def ListenLoop():
                     break
         else:
             time.sleep(SampleRate)
+    path = os.path.expanduser("~")+"/Desktop/Macro/TempMacro"
+    file = open(path,"w")
+    file.writelines(str(SampleRate)+"\n")
+    for item in lastmacro:
+        file.writelines(item+"\n")
+    file.close()
     if askokcancel(title="Save", message="Write to file? The recording is stored temporarily if you cancel"):
         path = os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros"
         validfound = False
@@ -148,6 +162,7 @@ def ClearAll():
 def Home():
     ClearAll()
     root.geometry("400x400")
+
     title = tk.Label(root, text="Macro Cool", font=("TkDefaultFont",30))
     title.pack(padx=0,pady=0)
     sub1 = tk.Label(root, text=("Press the button to listen for macro, pause keybind="+str(pause)),wraplength=400)
@@ -293,12 +308,16 @@ def ReplayFiles():
     select.pack(pady=5)
     delete = tk.Button(root,text="Delete",command=lambda:Delete(var.get()))
     delete.pack(pady=5)
+    temp = tk.Button(root,text="Replay last recording",command=lambda:RunMacro(True))
+    temp.pack(pady=7)
     root.update()
     CreateHome()
 
 def Delete(path:str):
     if path == "No saves... yet..." or path == "Select File":
         showerror("No Selection","You have not selected any path for deletion")
+        return 0
+    if not askokcancel("Sure","Are you sure you want to delete this file? You cannot retrieve it once deleted"):
         return 0
     path = path.split()[0]
     os.remove(path)
@@ -314,34 +333,50 @@ def Delete(path:str):
     Home()
 
 def ParseLine(line:str):
+    global showmsg
     line = line.split()
-    position = tuple(map(float, line[:2]))
-    scrolldelta = tuple(map(float, line[2:4]))
-    mouseinputs = []
-    keyinputs = []
-    currpos = 5
-    for x in line[4:]:
-        if x == "M":
-            break
-        currpos+=1 
-        keyinputs.append(x)
-    mouseinputs = line[currpos:]
-    return (position, scrolldelta, mouseinputs, keyinputs)
+    try:
+        position = tuple(map(float, line[:2]))
+        scrolldelta = tuple(map(float, line[2:4]))
+        mouseinputs = []
+        keyinputs = []
+        currpos = 5
+        for x in line[4:]:
+            if x == "M":
+                break
+            currpos+=1 
+            keyinputs.append(x)
+        mouseinputs = line[currpos:]
+    except (IndexError, ValueError):
+        if showmsg:
+            showerror("File Issue", "Failed to execute line, execution will not stop")
+            showmsg = False
+        return ((0,0),(0,0),[],[])
+    return (position, scrolldelta, mouseinputs, keyinputs) 
  
-def RunMacro():
+def RunMacro(Temp=False):
     global var, Looping, Running, PauseLoop, speed
     frames = []
+    Unparsed = []
     Running = True
     PauseLoop = False
     try:
-        if var.get() == "No saves... yet..." or var.get() == "Select File":
+        if not Temp and (var.get() == "No saves... yet..." or var.get() == "Select File"):
             showerror("Error", "Attempted to open no files. First try saving some files or selecting one to open")
             return None
-        file = open(var.get().split(" ")[0],"r")
+        if Temp:
+            file = open(os.path.expanduser("~")+"/Desktop/Macro/TempMacro","r")
+            Unparsed = file.readlines()
+            if Unparsed == []:
+                showerror("Error","No temporary recording available")
+                return None
+        else:
+            file = open(var.get().split(" ")[0],"r")
+            Unparsed = file.readlines()
     except NotADirectoryError:
         showerror("Error","Hello! This is a free open source macro! Its not amazing but it works! Attempted to open file that doesn't exist. Most likely cause is pathnames file is inconsistent, update it manually by adding the path of the missing file(s) and going to the next line. Soon, I will add automatic correction. Sometimes, I don't know when, there will be an error caught during execution of a recording. If this happens, you can continue execution of the macro, however it will contain missing parts. You can toggle this message in settings, once you've chosen to proceed despite the error, the message will never appear.")
         return None
-    for item in map(RemoveBreak,file.readlines()):
+    for item in map(RemoveBreak,Unparsed):
         frames.append(item)
     wait = float(frames.pop(0))
     wait /= speed.get()
@@ -448,6 +483,8 @@ def StartProgram():
         pass
     KT = threading.Thread(target=KeyThread,args=())
     KT.start()
+    ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
+    ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","TempMacro"))
     root.mainloop()
 
 StartProgram()   
