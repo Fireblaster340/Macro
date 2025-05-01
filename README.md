@@ -4,4 +4,8 @@ Once saved, you can replay the recording back and loop it, automating many thing
 # How to run
 To use it, you need to download the files and put them in a folder together. Ideally you'd want to download the Macro folder as a whole. You can then delete the placeholder from the RecordedMacros folder. You can just pull the repo tbh. Now, run the MacroScript.py file in an IDE (if you are on windows, its inbuilt, just go to top and run the code). From here, you're all set to use it!
 Once recorded, it stores it in a file which typically is under 1MB size, but it depends on how long your macro is. 
+# What I will be adding
+The ability to renanme files without being special
+Bugfixes ofc
+Importing Files
 # Nice
