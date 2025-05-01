@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter.messagebox import showinfo, askokcancel, showerror
+from tkinter import simpledialog
 import os
 try:
     from pynput.keyboard import Listener as KList, Key, Controller as KCont
@@ -36,6 +37,8 @@ def ListenLoop():
     concat = ""
     if startpause:
         concat = "P"
+    while concat == "P":
+        pass
     while islistening:
         concat = ""
         pos = str(MCont().position[0])+" "+str(MCont().position[1])
@@ -162,7 +165,6 @@ def ClearAll():
 def Home():
     ClearAll()
     root.geometry("400x400")
-
     title = tk.Label(root, text="Macro Cool", font=("TkDefaultFont",30))
     title.pack(padx=0,pady=0)
     sub1 = tk.Label(root, text=("Press the button to listen for macro, pause keybind="+str(pause)),wraplength=400)
@@ -309,9 +311,33 @@ def ReplayFiles():
     delete = tk.Button(root,text="Delete",command=lambda:Delete(var.get()))
     delete.pack(pady=5)
     temp = tk.Button(root,text="Replay last recording",command=lambda:RunMacro(True))
-    temp.pack(pady=7)
+    temp.pack(pady=5)
+    rename = tk.Button(root,text="Rename file",command=Rename)
+    rename.pack(pady=5)
     root.update()
     CreateHome()
+def Rename():
+    global var
+    root.withdraw()
+    name = simpledialog.askstring("Rename","What would you like to rename this file to?")
+    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",name)
+    if name == None:
+        return 0
+    os.rename(var.get().split()[0],newpath)
+    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
+    allpaths = list(map(RemoveBreak,file.readlines()))
+    file.close()
+    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
+    file.write("")
+    for i in allpaths:
+        if var.get().split()[0] == i:
+            file.writelines(newpath+"\n")
+        else:
+            file.writelines(i+"\n")   
+    file.close() 
+    root.wm_deiconify()
+    Home()    
+ 
 
 def Delete(path:str):
     if path == "No saves... yet..." or path == "Select File":
@@ -355,7 +381,7 @@ def ParseLine(line:str):
     return (position, scrolldelta, mouseinputs, keyinputs) 
  
 def RunMacro(Temp=False):
-    global var, Looping, Running, PauseLoop, speed
+    global var, Looping, Running, PauseLoop, speed, root
     frames = []
     Unparsed = []
     Running = True
@@ -381,18 +407,20 @@ def RunMacro(Temp=False):
     wait = float(frames.pop(0))
     wait /= speed.get()
     wait *= 100
+    root.withdraw()
+    root.update()
     Execute(frames,wait)
     while Looping: 
         Execute(frames,wait)
+    root.wm_deiconify()
 def Execute(frames, wait):
-    global PauseLoop, Looping, Running, showmsg
+    global PauseLoop, Looping, Running, showmsg, root
     mouse = MCont()
     keyboard = KCont()
     currkeys = []
     currmouse = []
     validkeys = []
     validmouse = []
-    root.focus_set()
     for item in frames:
         try:
             parsed = ParseLine(item)
@@ -456,7 +484,6 @@ def Execute(frames, wait):
         mouse.release(i)
     for i in currkeys:
         keyboard.release(i)
-
 def CreateHome():
     global home
     home = tk.Button(root,text="Home",command=Home)
