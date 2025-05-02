@@ -23,7 +23,6 @@ mouseDx, mouseDy = 0,0
 SampleRate = 0.01
 paused, Looping, startpause, PauseLoop, islistening, showmsg, mrun = False,False,False,False,False,False,False
 Running = True
-
 def ReplaceFile(path):
     try:
         open(path,"r")
@@ -40,7 +39,8 @@ def ListenLoop():
     if startpause:
         concat = "P"
     while concat == "P":
-        pass
+        if not islistening:
+            break
     while islistening:
         concat = ""
         pos = str(MCont().position[0])+" "+str(MCont().position[1])
@@ -184,7 +184,7 @@ def Home():
     extra.pack(pady=20)
 
 def Settings():
-    global SmplRt, PauseEnt
+    global SmplRt, PauseEnt, Total
     ClearAll()
     root.geometry("400x600")
     STitle = tk.Label(root, text="Settings", font=("TkDefaultFont",30))
@@ -214,6 +214,8 @@ def Settings():
     PauseEnt.pack(pady=3)
     PauseB = tk.Button(root, text="Submit",command=PauseSet)
     PauseB.pack(pady=3)
+    StorageUsed = tk.Label(root, text=f"Storage Used: {Total}")
+    StorageUsed.pack(pady=8)
     CreateHome()
 def PauseSet():
     global PauseEnt, pause
@@ -321,14 +323,15 @@ def ReplayFiles():
     CreateHome()
 def Rename():
     global var
-    if var.get().split()[0] in ["No saves... yet...", "Select File"]:
+    print(var.get().split()[0])
+    if var.get().split()[0] in ["No", "Select"]:
         showerror("No Selection","You have not selected any path for renaming")
         return 0
     root.withdraw()
-    name = simpledialog.askstring("Rename","What would you like to rename this file to?")
-    if name == None:
+    newname = simpledialog.askstring("Rename","What would you like to rename this file to?")
+    if newname == None:
         return 0
-    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",name)
+    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",newname)
     os.rename(var.get().split()[0],newpath)
     file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
     allpaths = list(map(RemoveBreak,file.readlines()))
@@ -507,7 +510,7 @@ def ToggleListen():
         islistening = False
 
 def StartProgram():
-    global KT, MT
+    global KT, MT, Total
     Home()
     print("Starting threads")
     MT = threading.Thread(target=MouseThread,args=())
@@ -516,8 +519,14 @@ def StartProgram():
         pass
     KT = threading.Thread(target=KeyThread,args=())
     KT.start()
+    Total = 0
     ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
     ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","TempMacro"))
+    file = open(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
+    for i in list(map(RemoveBreak, file.readlines())):
+        Total += os.path.getsize(i)
+    Total += os.path.getsize(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","MacroScript.py"))
+    Total = ConvertSize(Total)
     root.mainloop()
 
 StartProgram()   
