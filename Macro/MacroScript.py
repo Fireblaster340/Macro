@@ -7,8 +7,12 @@ try:
 except ModuleNotFoundError:
     print("Installing pynput...")
     os.system('pip3 install pynput')
-from pynput.keyboard import Listener as KList, Key, Controller as KCont
-from pynput.mouse import Listener as MList, Button, Controller as MCont
+try:
+    from pynput.keyboard import Listener as KList, Key, Controller as KCont
+    from pynput.mouse import Listener as MList, Button, Controller as MCont
+except ModuleNotFoundError:
+    showerror("Fatal Error","Fatal Error, pynput library failed to install, try installing manually")
+    paused = True
 import threading 
 import time
 
@@ -187,6 +191,7 @@ def Settings():
     global SmplRt, PauseEnt, Total
     ClearAll()
     root.geometry("400x600")
+    Total = ComputeSize()
     STitle = tk.Label(root, text="Settings", font=("TkDefaultFont",30))
     STitle.pack(padx=0,pady=0)
     SampleTxt = tk.Label(root,text="Change sample rate, default = 0.01 (100 times per second)")
@@ -219,6 +224,9 @@ def Settings():
     CreateHome()
 def PauseSet():
     global PauseEnt, pause
+    if PauseEnt.get() == "[":
+        showerror("Unable to set keybind","Pause keybind interferes with stop keybind")
+        return 0
     if "Key" in str(pause):
         pause = getattr(Key,(PauseEnt.get()).split(".")[1])
     else:
@@ -323,7 +331,6 @@ def ReplayFiles():
     CreateHome()
 def Rename():
     global var
-    print(var.get().split()[0])
     if var.get().split()[0] in ["No", "Select"]:
         showerror("No Selection","You have not selected any path for renaming")
         return 0
@@ -509,6 +516,14 @@ def ToggleListen():
         begin.config(text="Start listening")
         islistening = False
 
+def ComputeSize():
+    Total = 0
+    file = open(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
+    for i in list(map(RemoveBreak, file.readlines())):
+        Total += os.path.getsize(i)
+    Total += os.path.getsize(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","MacroScript.py"))
+    Total = ConvertSize(Total)
+    return Total
 def StartProgram():
     global KT, MT, Total
     Home()
@@ -522,12 +537,8 @@ def StartProgram():
     Total = 0
     ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
     ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","TempMacro"))
-    file = open(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
-    for i in list(map(RemoveBreak, file.readlines())):
-        Total += os.path.getsize(i)
-    Total += os.path.getsize(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","MacroScript.py"))
-    Total = ConvertSize(Total)
+    Total = ComputeSize()
     root.mainloop()
-
-StartProgram()   
+if not paused:
+    StartProgram()   
 quit(0)
