@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter.messagebox import showinfo, askokcancel, showerror
 from tkinter import simpledialog
+from tkinter.filedialog import askopenfile
 import os
 try:
     from pynput.keyboard import Listener as KList, Key, Controller as KCont
@@ -27,6 +28,9 @@ mouseDx, mouseDy = 0,0
 SampleRate = 0.01
 paused, Looping, startpause, PauseLoop, islistening, showmsg, mrun = False,False,False,False,False,False,False
 Running = True
+recordedpath = os.path.join(os.path.expanduser("~"),"Desktop","Macro","RecordedMacros")
+pathnames = os.path.join(os.path.expanduser("~"),"Desktop","Macro","Pathnames")
+mainfile = os.path.join(os.path.expanduser("~"),"Desktop","Macro")
 def ReplaceFile(path):
     try:
         open(path,"r")
@@ -61,14 +65,14 @@ def ListenLoop():
                     break
         else:
             time.sleep(SampleRate)
-    path = os.path.expanduser("~")+"/Desktop/Macro/TempMacro"
+    path = os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro")
     file = open(path,"w")
     file.writelines(str(SampleRate)+"\n")
     for item in lastmacro:
         file.writelines(item+"\n")
     file.close()
     if askokcancel(title="Save", message="Write to file? The recording is stored temporarily if you cancel"):
-        path = os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros"
+        path = recordedpath
         validfound = False
         att = 0     
         while not validfound:
@@ -86,7 +90,7 @@ def ListenLoop():
             for item in lastmacro:
                 file.writelines(item+"\n")
             file.close()
-            file = open((os.path.expanduser("~")+"/Desktop/Macro/PathNames"),'a')
+            file = open(pathnames,'a')
             file.writelines(path+"\n")
             file.close()
             showinfo("Saved","Saved Successfully! Path: "+path)
@@ -284,11 +288,12 @@ def ToggleStart():
 def ReplayFiles():
     global drop, var, Running, paused, Looping, speed
     ClearAll()  
+    root.geometry("400x500")
     info = tk.Label(root, text="Select a file name from the drop down menu to run")
     info.pack()
     var = tk.StringVar(root)
     var.set("Select File")
-    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
+    file = open(pathnames,"r")
     contents = list(map(RemoveBreak, file.readlines()))
     try:
         contents = list(map(AddSize, contents))
@@ -298,10 +303,10 @@ def ReplayFiles():
             try:
                 file = open(item,"r")
             except FileNotFoundError:
-                file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
+                file = open(pathnames,"r")
                 filepaths = list(map(RemoveBreak,file.readlines()))
                 file.close()
-                file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
+                file = open(pathnames,"w")
                 file.write("")
                 for i in filepaths:
                     if item != i:
@@ -327,8 +332,31 @@ def ReplayFiles():
     temp.pack(pady=5)
     rename = tk.Button(root,text="Rename file",command=Rename)
     rename.pack(pady=5)
+    importing = tk.Button(root,text="Import File",command=FileImport)
+    importing.pack(pady=5)
     root.update()
     CreateHome()
+def FileImport():
+    if not askokcancel("Confirm","The file that you select will be moved to RecordedMacros folder, proceed?"):
+        return 0
+    filename = askopenfile(filetypes=[("Plain text files","*.txt")])
+    if not filename.name.endswith(".txt"):
+        if not askokcancel("Extension","This file does not have a .txt extension, if you would like to import anyways then press OK"):
+            return 0
+    if filename is None:
+        return 0
+
+    new = recordedpath+(filename.name).split("/" if "/" in filename.name else "\\")[-1]
+    try:
+        os.rename(filename.name,new)
+    except PermissionError:
+        showerror("Error","Could not import file, missing permissions")
+        showinfo("Rare Notice!","Just saying, that was a very rare error lol. I did not know that was an exception till like just now haha.")
+        return 0
+    file = open(pathnames,'a')
+    file.writelines(new+"\n")
+    file.close()
+    Home()
 def Rename():
     global var
     if var.get().split()[0] in ["No", "Select"]:
@@ -338,12 +366,12 @@ def Rename():
     newname = simpledialog.askstring("Rename","What would you like to rename this file to?")
     if newname == None:
         return 0
-    newpath = os.path.join(os.path.expanduser("~")+"/Desktop/Macro/RecordedMacros",newname)
+    newpath = os.path.join(recordedpath,newname)
     os.rename(var.get().split()[0],newpath)
-    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
+    file = open(pathnames,"r")
     allpaths = list(map(RemoveBreak,file.readlines()))
     file.close()
-    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
+    file = open(pathnames,"w")
     file.write("")
     for i in allpaths:
         if var.get().split()[0] == i:
@@ -363,10 +391,10 @@ def Delete(path:str):
         return 0
     path = path.split()[0]
     os.remove(path)
-    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","r")
+    file = open(pathnames,"r")
     files = list(map(RemoveBreak,file.readlines()))
     file.close()
-    file = open(os.path.expanduser("~")+"/Desktop/Macro/Pathnames","w")
+    file = open(pathnames,"w")
     file.write("")
     for i in files:
         if path != i:
@@ -407,7 +435,7 @@ def RunMacro(Temp=False):
             showerror("Error", "Attempted to open no files. First try saving some files or selecting one to open")
             return None
         if Temp:
-            file = open(os.path.expanduser("~")+"/Desktop/Macro/TempMacro","r")
+            file = open(os.path.join(os.path.expanduser("~")+"Desktop","Macro","TempMacro"),"r")
             Unparsed = file.readlines()
             if Unparsed == []:
                 showerror("Error","No temporary recording available")
@@ -420,7 +448,11 @@ def RunMacro(Temp=False):
         return None
     for item in map(RemoveBreak,Unparsed):
         frames.append(item)
-    wait = float(frames.pop(0))
+    try:
+        wait = float(frames.pop(0))
+    except (ValueError, TypeError, IndexError):
+        showerror("Error","Invalid Sample Rate Found, Defaulting to 0.01")
+    wait = 0.01
     wait /= speed.get()
     wait *= 100
     root.withdraw()
@@ -496,6 +528,11 @@ def Execute(frames, wait):
                 if not askokcancel("Error","Error was caught, proceed with Macro? (Parts of macro will be missing)"):
                     showmsg = False
                     break
+        except ValueError:
+            if showmsg:
+                if not askokcancel("Fatal Error", "Fatal error with file, macro likely will not work, proceed anyways?"):
+                    showmsg = False
+                    break
     for i in currmouse:
         mouse.release(i)
     for i in currkeys:
@@ -518,10 +555,14 @@ def ToggleListen():
 
 def ComputeSize():
     Total = 0
-    file = open(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
-    for i in list(map(RemoveBreak, file.readlines())):
-        Total += os.path.getsize(i)
-    Total += os.path.getsize(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","MacroScript.py"))
+    try:
+        file = open(os.path.join(mainfile,"Pathnames"))
+        for i in list(map(RemoveBreak, file.readlines())):
+            Total += os.path.getsize(i)
+        Total += os.path.getsize(mainfile,"MacroScript.py")
+    except FileNotFoundError:
+        showerror("File Missing","Detected a nonexistent file, open the replay files page to autocorrect")
+        return 0
     Total = ConvertSize(Total)
     return Total
 def StartProgram():
@@ -535,8 +576,8 @@ def StartProgram():
     KT = threading.Thread(target=KeyThread,args=())
     KT.start()
     Total = 0
-    ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","Pathnames"))
-    ReplaceFile(os.path.join(os.path.expanduser("~")+"/Desktop/Macro","TempMacro"))
+    ReplaceFile(os.path.join(mainfile,"Pathnames"))
+    ReplaceFile(os.path.join(mainfile,"TempMacro"))
     Total = ComputeSize()
     root.mainloop()
 if not paused:
