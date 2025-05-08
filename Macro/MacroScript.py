@@ -576,6 +576,11 @@ def StartProgram():
     KT = threading.Thread(target=KeyThread,args=())
     KT.start()
     Total = 0
+    try:
+        os.remove(os.path.join(recordedpath,"Placeholder"))
+        showinfo("Thanks","Hi there! Thanks for downloading my macro, feel free to send any suggestions my way! Auto removed placeholder file.")
+    except FileNotFoundError:
+        pass
     ReplaceFile(os.path.join(mainfile,"Pathnames"))
     ReplaceFile(os.path.join(mainfile,"TempMacro"))
     Total = ComputeSize()
