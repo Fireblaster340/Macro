@@ -32,11 +32,16 @@ recordedpath = os.path.join(os.path.expanduser("~"),"Desktop","Macro","RecordedM
 pathnames = os.path.join(os.path.expanduser("~"),"Desktop","Macro","Pathnames")
 mainfile = os.path.join(os.path.expanduser("~"),"Desktop","Macro")
 def ReplaceFile(path):
+    global paused
     try:
-        open(path,"r")
+        open(path,"r").close()
     except FileNotFoundError:
         showerror("File Missing","Critical file is missing, creating it")
-        open(path,"w")
+        try:
+            open(path,"w").close()
+        except FileNotFoundError:
+            showerror("Fatal Error","Fatal Error, path opening has failed. This program is not compatible with your system yet")
+            paused = True
 
 def ListenLoop():
     global islistening, lastmacro, SampleRate, startpause, concat
@@ -72,18 +77,7 @@ def ListenLoop():
         file.writelines(item+"\n")
     file.close()
     if askokcancel(title="Save", message="Write to file? The recording is stored temporarily if you cancel"):
-        path = recordedpath
-        validfound = False
-        att = 0     
-        while not validfound:
-            name = "Recording"+str(att)
-            try:
-                open(os.path.join(path,name),"r")
-                att+=1
-            except (OSError,FileExistsError,FileNotFoundError):
-                validfound = True
-        
-        path = os.path.join(path,name)
+        path = NextFreePath(os.path.join(recordedpath,"Recording"))
         try:
             file = open(path,'w')
             file.writelines(str(SampleRate)+"\n")
@@ -96,7 +90,20 @@ def ListenLoop():
             showinfo("Saved","Saved Successfully! Path: "+path)
         except OSError:
             showerror("Failed","Unexpected error occured during saving, path info: "+path)
+ 
     root.wm_deiconify()
+
+def NextFreePath(path:str):
+    validfound = False
+    att = 0     
+    while not validfound:
+        name = path+str(att)
+        try:
+            open(os.path.join(path,name),"r").close()
+            att+=1
+        except (OSError,FileExistsError,FileNotFoundError):
+            validfound = True
+    return name
 def KeyThread():
     global islistening
     try:
@@ -257,7 +264,9 @@ def ListenPage():
     ClearAll()
     listentxt = tk.Label(root,text="Macro Listener",font=("TkDefaultFont",30))
     listentxt.pack(padx=0,pady=0)
-    pauserem = tk.Label(root,text="Pause key="+pause,font=("TkDefaultFont",20))
+    info = tk.Label(root,text="Listens to inputs and stores it as a text file",font=("TkDefaultFont",18))
+    info.pack()
+    pauserem = tk.Label(root,text="Pause key="+pause+", End Key='['",font=("TkDefaultFont",15))
     pauserem.pack(padx=0,pady=5)
     begin = tk.Button(root, text="Start listening", command=ToggleListen)
     begin.pack(padx=0,pady=5)
@@ -286,15 +295,18 @@ def ToggleStart():
     global startpause
     startpause = not startpause
 def ReplayFiles():
-    global drop, var, Running, paused, Looping, speed
+    global drop, var, Running, paused, Looping, speed, savedcontents
     ClearAll()  
-    root.geometry("400x500")
+    root.geometry("400x600")
+    title = tk.Label(root, text="File Replayer", font=("TkDefaultFont",30))
+    title.pack()
     info = tk.Label(root, text="Select a file name from the drop down menu to run")
     info.pack()
     var = tk.StringVar(root)
     var.set("Select File")
     file = open(pathnames,"r")
     contents = list(map(RemoveBreak, file.readlines()))
+    savedcontents = contents
     try:
         contents = list(map(AddSize, contents))
     except FileNotFoundError:
@@ -334,12 +346,86 @@ def ReplayFiles():
     rename.pack(pady=5)
     importing = tk.Button(root,text="Import File",command=FileImport)
     importing.pack(pady=5)
+    advanced = tk.Button(root,text="Advanced options",command=Advanced)
+    advanced.pack(pady=6)
     root.update()
     CreateHome()
+
+def Advanced():
+    ClearAll()
+    root.geometry("400x500")
+    advtitle = tk.Label(root, text="Advanced Options", font=("TkDefaultFont",30))
+    advtitle.pack()
+    mergebutton = tk.Button(root, text="Merge Files", command=MergePage)
+    mergebutton.pack(pady=6)
+    back = tk.Button(root,text="Back",command=ReplayFiles)
+    back.pack() #I can't help but comment at how W this line is
+def MergePage():
+    global savedcontents, root
+    ClearAll()
+    root.geometry("400x400")
+    title = tk.Label(root,text="Merge Files",font=("TkDefaultFont",30))
+    title.pack()
+    info = tk.Label(root,text="Merging chains together 2 files that will play directly after another.",wraplength=400)
+    info.pack()
+    name1 = tk.Label(root,text="First file",font=("TkDefaultFont",20))
+    name1.pack()
+    var1 = tk.StringVar(root)
+    item1 = tk.OptionMenu(root,var1,*savedcontents)
+    item1.pack(pady=5)
+    name2 = tk.Label(root,text="Second file",font=("TkDefaultFont",20))
+    name2.pack()
+    var2 = tk.StringVar(root)
+    item2 = tk.OptionMenu(root,var2,*savedcontents)
+    item2.pack(pady=5)
+    mergebutton = tk.Button(root,text="Merge Files",command=lambda:Merge(var1.get(),var2.get()))
+    mergebutton.pack(pady=5)
+    advback = tk.Button(root,text="Back",command=Advanced)
+    advback.pack()
+    
+def Merge(path1:str="Empty",path2:str="Empty"):
+    if path1 == "Empty" or path2 == "Empty":
+        showerror("Error", "Input something as a file path")
+        return 0
+    try:
+        concat = ""
+        file = open(path1,"r")
+        contents1 = list(map(RemoveBreak,file.readlines()))
+        file.close()
+        file = open(path2,"r")
+        contents2 = list(map(RemoveBreak,file.readlines()))
+        file.close()
+        srate = "0.01"
+        if askokcancel("Sample Rate","Use weighted average of sample rate?"):
+            srate = str((float(contents1[0])*len(contents1)+float(contents2[0])*len(contents2))/(len(contents1)+len(contents2)))
+        else:
+            if askokcancel("Use file 1 sample rate?"):
+                srate = contents1[0]
+            else:
+                srate = contents2[0]
+        contents1=contents1[1:]
+        contents2=contents2[1:]
+        concat = srate+"\n"
+        for i in contents1:
+            concat+=i+"\n"
+        for i in contents2:
+            concat+=i+"\n"
+        mergedpath = os.path.join(recordedpath,NextFreePath(os.path.join(recordedpath,"Merge")))
+        file = open(mergedpath,"w")
+        file.writelines(concat)
+        file.close()
+        file = open(pathnames,"a")
+        file.writelines(mergedpath+"\n")
+    except (FileNotFoundError,OSError):
+        showerror("Failed","An unexpected error occurred, failed to merge")
+        return 0
+    showinfo("Success!","Merging completed successfully and saved!")
 def FileImport():
     if not askokcancel("Confirm","The file that you select will be moved to RecordedMacros folder, proceed?"):
         return 0
     filename = askopenfile(filetypes=[("Plain text files","*.txt")])
+    if filename is None:
+        return 0 
     if not filename.name.endswith(".txt"):
         if not askokcancel("Extension","This file does not have a .txt extension, if you would like to import anyways then press OK"):
             return 0
@@ -435,7 +521,7 @@ def RunMacro(Temp=False):
             showerror("Error", "Attempted to open no files. First try saving some files or selecting one to open")
             return None
         if Temp:
-            file = open(os.path.join(os.path.expanduser("~")+"Desktop","Macro","TempMacro"),"r")
+            file = open(os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro"),"r")
             Unparsed = file.readlines()
             if Unparsed == []:
                 showerror("Error","No temporary recording available")
@@ -559,7 +645,7 @@ def ComputeSize():
         file = open(os.path.join(mainfile,"Pathnames"))
         for i in list(map(RemoveBreak, file.readlines())):
             Total += os.path.getsize(i)
-        Total += os.path.getsize(mainfile,"MacroScript.py")
+        Total += os.path.getsize(os.path.join(mainfile,"MacroScript.py"))
     except FileNotFoundError:
         showerror("File Missing","Detected a nonexistent file, open the replay files page to autocorrect")
         return 0
@@ -585,6 +671,7 @@ def StartProgram():
     ReplaceFile(os.path.join(mainfile,"TempMacro"))
     Total = ComputeSize()
     root.mainloop()
+    
 if not paused:
     StartProgram()   
 quit(0)
