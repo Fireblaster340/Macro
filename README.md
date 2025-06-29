@@ -8,6 +8,5 @@ Important note: if the pynput library fails to install, idk what to tell you ðŸ’
 # What I will be adding
 Bugfixes ofc,
 Remapping In Macro (Change keys like "W" -> "S"),
-Merging Macros,
 Re-Recording
 # Nice
