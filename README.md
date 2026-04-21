@@ -7,6 +7,6 @@ Once recorded, it stores it in a file which typically is under 1MB size, but it 
 Important note: if the pynput library fails to install, idk what to tell you 💀 (Try typing pip install pynput in terminal idk?)
 # What I will be adding
 Bugfixes ofc,
-Remapping In Macro (Change keys like "W" -> "S"),
-Re-Recording
+Re-Recording, 
+More key options for remaps
 # Nice
