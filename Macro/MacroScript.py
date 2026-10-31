@@ -28,13 +28,14 @@ SampleRate = 0.01
 paused, Looping, startpause, PauseLoop, islistening, showmsg, mrun = False,False,False,False,False,False,False
 Running = True
 makenewremap = False
-os.makedirs(os.path.join(os.path.expanduser("~"),"Desktop","Macro"),exist_ok=True)
-recordedpath = os.path.join(os.path.expanduser("~"),"Desktop","Macro","RecordedMacros")
-pathnames = os.path.join(os.path.expanduser("~"),"Desktop","Macro","Pathnames")
-mainfile = os.path.join(os.path.expanduser("~"),"Desktop","Macro")
+filelocation = os.path.abspath("")
+os.makedirs(os.path.join(filelocation),exist_ok=True)
+recordedpath = os.path.join(filelocation,"RecordedMacros")
+pathnames = os.path.join(filelocation,"Pathnames")
+mainfile = os.path.join(filelocation)
 def ReplaceFile(path):
-    global paused
     try:
+
         open(path,"r").close()
     except FileNotFoundError:
         showerror("File Missing","Critical file is missing, creating it")
@@ -71,7 +72,7 @@ def ListenLoop():
                     break
         else:
             time.sleep(SampleRate)
-    path = os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro")
+    path = os.path.join(filelocation,"TempMacro")
     file = open(path,"w")
     file.writelines(str(SampleRate)+"\n")
     for item in lastmacro:
@@ -651,7 +652,7 @@ def RunMacro(Temp=False):
             showerror("Error", "Attempted to open no files. First try saving some files or selecting one to open")
             return None
         if Temp:
-            file = open(os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro"),"r")
+            file = open(os.path.join(filelocation,"TempMacro"),"r")
             Unparsed = file.readlines()
             if Unparsed == []:
                 showerror("Error","No temporary recording available")
@@ -802,10 +803,8 @@ def StartProgram():
     ReplaceFile(os.path.join(mainfile,"TempMacro"))
     Total = ComputeSize()
     root.mainloop()
-    
-if not paused:
-    StartProgram()   
-quit(0)        open(path,"r").close()
+    try:
+        open(path,"r").close()
     except FileNotFoundError:
         showerror("File Missing","Critical file is missing, creating it")
         try:
@@ -841,7 +840,7 @@ def ListenLoop():
                     break
         else:
             time.sleep(SampleRate)
-    path = os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro")
+    path = os.path.join(filelocation,"TempMacro")
     file = open(path,"w")
     file.writelines(str(SampleRate)+"\n")
     for item in lastmacro:
@@ -1292,7 +1291,7 @@ def RunMacro(Temp=False):
             showerror("Error", "Attempted to open no files. First try saving some files or selecting one to open")
             return None
         if Temp:
-            file = open(os.path.join(os.path.expanduser("~"),"Desktop","Macro","TempMacro"),"r")
+            file = open(os.path.join(filelocation,"TempMacro"),"r")
             Unparsed = file.readlines()
             if Unparsed == []:
                 showerror("Error","No temporary recording available")
